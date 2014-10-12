@@ -1,0 +1,21 @@
+{
+    "name": "mile23/sitemap_verify",
+    "description": "Verify that a sitemap.xml file is correct.",
+    "license": "GPL-2.0",
+    "authors": [
+        {
+            "name": "Paul Mitchum",
+            "email": "paul@mile23.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Mile23\\": "src/"
+        }
+    },
+    "minimum-stability": "stable",
+    "require": {
+        "fabpot/goutte": "~2",
+        "symfony/console": "~2"
+    }
+}
