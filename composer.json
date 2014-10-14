@@ -16,6 +16,7 @@
     "minimum-stability": "stable",
     "require": {
         "fabpot/goutte": "~2",
-        "symfony/console": "~2"
+        "symfony/console": "~2",
+        "pimple/pimple": "~3"
     }
 }
