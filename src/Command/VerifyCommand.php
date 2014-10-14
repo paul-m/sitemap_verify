@@ -5,6 +5,7 @@ namespace Mile23\Command;
 use Goutte\Client;
 use Mile23\ContainerAwareInterface;
 use Mile23\UrlBuilder;
+use Mile23\Sitemap\SitemapCrawler;
 use Pimple\Container;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -27,15 +28,18 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
 
   protected function execute(InputInterface $input, OutputInterface $output) {
     $base_url = $input->getArgument('baseurl');
+    $c = $this->container;
+    $c['command.output'] = $output;
+    $c['command.verify.baseurl'] = $base_url;
 
     $url = new UrlBuilder('/sitemap.xml', $base_url);
 
-    $client = new Client();
-    $crawler = $client->request('GET', (string)$url);
+    $sitemap = new SitemapCrawler($c, $url);
 
-    foreach ($crawler->filter('urlset > url > loc') as $dom_element) {
-      $output->writeln($dom_element->nodeValue);
+    foreach($sitemap as $site) {
+      $output->writeln($site);
     }
+
   }
 
   public function setContainer(Container $c) {
