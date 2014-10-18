@@ -4,6 +4,7 @@ namespace Mile23\Command;
 
 use Mile23\UrlBuilder;
 use Mile23\ContainerAwareInterface;
+use Mile23\Sitemap\HtmlCrawler;
 use Goutte\Client;
 use Pimple\Container;
 use Symfony\Component\Console\Command\Command;
@@ -31,28 +32,16 @@ class AllLinksCommand extends Command implements ContainerAwareInterface {
   protected function execute(InputInterface $input, OutputInterface $output) {
     $uri = $input->getArgument('uri');
     $base_url = $input->getArgument('baseurl');
+    $c = $this->container;
+    $c['command.alllinks.baseurl'] = $base_url;
+    $c['command.output'] = $output;
 
-    $client = new Client();
-    $crawler = $client->request('GET', $uri);
+    $links = new HtmlCrawler(
+      $this->container, new UrlBuilder($uri, $base_url)
+    );
 
-    foreach ($crawler->filter('a, link, script, img') as $element) {
-      switch ($element->tagName) {
-        case 'a':
-        case 'link':
-          $attr = 'href';
-          break;
-        case 'script':
-        case 'img':
-          $attr = 'src';
-      }
-      $link_on_the_page = $element->getAttribute($attr);
-      if ($link_on_the_page) {
-        $url = new UrlBuilder($link_on_the_page, $base_url);
-        $output->writeln((string) $url);
-      }
-    }
-    if (!empty($this->container)) {
-      $output->writeln('Woot container!');
+    foreach ($links as $link) {
+      $output->writeln((string) $link);
     }
   }
 

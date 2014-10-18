@@ -61,7 +61,7 @@ class UrlBuilder {
     $this->setPart('fragment', $fragment);
   }
 
-  public function __toString() {
+  public function toUrl($include_fragment = TRUE) {
     $empty_parts = $this->emptyParts();
     // Gather parts of original fragment.
     $parts = array_merge($empty_parts, parse_url($this->originalFragment));
@@ -88,10 +88,16 @@ class UrlBuilder {
     if (!empty($parts['query'])) {
       $url .= '?' . $parts['query'];
     }
-    if (!empty($parts['fragment'])) {
-      $url .= '#' . $parts['fragment'];
+    if ($include_fragment) {
+      if (!empty($parts['fragment'])) {
+        $url .= '#' . $parts['fragment'];
+      }
     }
     return $url;
+  }
+
+  public function __toString() {
+    return $this->toUrl(TRUE);
   }
 
 }
