@@ -37,7 +37,9 @@ class AllLinksCommand extends Command implements ContainerAwareInterface {
     $c['command.output'] = $output;
 
     $links = new HtmlCrawler(
-      $this->container, new UrlBuilder($uri, $base_url)
+      new UrlBuilder($uri, $base_url),
+      new UrlBuilder($base_url),
+      $output
     );
 
     foreach ($links as $link) {

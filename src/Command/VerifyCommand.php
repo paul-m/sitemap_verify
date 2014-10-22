@@ -12,6 +12,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Helper\ProgressBar;
 
 class VerifyCommand extends Command implements ContainerAwareInterface {
 
@@ -31,15 +32,47 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
     $c = $this->container;
     $c['command.output'] = $output;
     $c['command.verify.baseurl'] = $base_url;
+    $c['command.alllinks.baseurl'] = $base_url;
 
     $url = new UrlBuilder('/sitemap.xml', $base_url);
 
-    $sitemap = new SitemapCrawler($c, $url);
+    $output->writeln('Crawling: ' . $url);
 
-    foreach($sitemap as $site) {
-      $output->writeln($site);
+    $sitemap = new SitemapCrawler($url);
+
+    $resources = array();
+
+    $p = new ProgressBar($output, count($sitemap));
+    $p->setMessage('Crawling...');
+    $p->start();
+
+    /*    foreach($sitemap as $page) {
+      $page_crawler = new HtmlCrawler(new UrlBuilder($page), $url);
+      $resources[(string) $page] = $page_crawler;
+      $p->advance();
+      \sleep(5);
+      } */
+
+    // For now, only request HEAD on URLs.
+    $client = new Client();
+    $client->getClient()->setDefaultOption('config/curl/' . CURLOPT_TIMEOUT, 2);
+    foreach ($sitemap as $page_url) {
+
+//      \sleep(2);
+      $crawler = $client->request('HEAD', $page_url);
+
+      $status = $client->getResponse()->getStatus();
+      if ($status != 200) {
+        $resources[] = $page_url;
+      }
+      $p->advance();
     }
 
+    $p->finish();
+
+    foreach ($resources as $item) {
+      $output->writeln($item);
+    }
   }
 
   public function setContainer(Container $c) {

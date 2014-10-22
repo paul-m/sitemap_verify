@@ -8,24 +8,18 @@ use Mile23\UrlBuilder;
 
 class SitemapCrawler extends \ArrayIterator {
 
-  protected $container;
-  // Url object for the sitemap we're examining.
-  protected $url;
-
-  public function __construct(Container $c, UrlBuilder $u) {
+  public function __construct(UrlBuilder $u) {
     $pages = array();
-    $this->container = $c;
-    $this->url = $u;
-    $baseurl = $c['command.verify.baseurl'];
-    $output = $c['command.output'];
 
     $client = new Client();
     $crawler = $client->request('GET', (string) $u);
+    $sitemap_crawler = $crawler->filter('urlset > url > loc');
 
-    foreach ($crawler->filter('urlset > url > loc') as $dom_element) {
-      $url = $dom_element->nodeValue;
+    foreach ($sitemap_crawler as $url_loc) {
+      $url = $url_loc->nodeValue;
       $pages[$url] = $url;
     }
+
     parent::__construct($pages);
   }
 

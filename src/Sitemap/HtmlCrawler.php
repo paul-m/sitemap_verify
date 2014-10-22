@@ -10,35 +10,29 @@ namespace Mile23\Sitemap;
 use Goutte\Client;
 use Pimple\Container;
 use Mile23\UrlBuilder;
+use Symfony\Component\Console\Helper\ProgressBar;
 
 class HtmlCrawler extends \ArrayIterator {
-
-  protected $container;
-  // Url object for the sitemap we're examining.
-  protected $url;
 
   /**
    * Constructor method.
    *
    * @param Container $c
    *   The container for this app.
-   * @param UrlBuilder $u
+   * @param UrlBuilder $page
    *   URL builder object from which we can derive the URL of the page we want
    *   to scrape.
    */
-  public function __construct(Container $c, UrlBuilder $u) {
+  public function __construct(UrlBuilder $page, UrlBuilder $base_url) {
     $pages = array();
-    $this->container = $c;
-    $this->url = $u;
-    $base_url = $c['command.alllinks.baseurl'];
-    $output = $c['command.output'];
 
     $client = new Client();
-    $crawler = $client->request('GET', (string) $u);
+    $crawler = $client->request('GET', (string) $page);
 
     $externals = array();
+    $parse_crawler = $crawler->filter('a, link, script, img');
 
-    foreach ($crawler->filter('a, link, script, img') as $element) {
+    foreach ($parse_crawler as $element) {
       switch ($element->tagName) {
         case 'a':
         case 'link':
@@ -57,6 +51,7 @@ class HtmlCrawler extends \ArrayIterator {
         $externals[$url_key] = $url;
       }
     }
+
     parent::__construct($externals);
   }
 
