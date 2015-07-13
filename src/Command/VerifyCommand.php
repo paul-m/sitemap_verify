@@ -6,6 +6,7 @@ use Goutte\Client;
 use Mile23\ContainerAwareInterface;
 use Mile23\UrlBuilder;
 use Mile23\Sitemap\SitemapCrawler;
+use Mile23\Sitemap\HtmlCrawler;
 use Pimple\Container;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -37,7 +38,6 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
     $url = new UrlBuilder('/sitemap.xml', $base_url);
 
     $output->writeln('Crawling: ' . $url);
-
     $sitemap = new SitemapCrawler($url);
 
     $resources = array();
@@ -46,33 +46,45 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
     $p->setMessage('Crawling...');
     $p->start();
 
-    /*    foreach($sitemap as $page) {
-      $page_crawler = new HtmlCrawler(new UrlBuilder($page), $url);
-      $resources[(string) $page] = $page_crawler;
-      $p->advance();
-      \sleep(5);
-      } */
-
-    // For now, only request HEAD on URLs.
     $client = new Client();
     $client->getClient()->setDefaultOption('config/curl/' . CURLOPT_TIMEOUT, 2);
-    foreach ($sitemap as $page_url) {
 
+    // Pull in all URLs from the sitemap file(s), and compile a list of linked
+    // URLs to check.
+    // Linked array has the URL as key and the HTTP HEAD status code as item.
+    $linked = array();
+    foreach ($sitemap as $page_url) {
 //      \sleep(2);
-      $crawler = $client->request('HEAD', $page_url);
+      $crawler = $client->request('GET', $page_url);
 
       $status = $client->getResponse()->getStatus();
       if ($status != 200) {
         $resources[] = $page_url;
+      }
+      else {
+        $page_crawler = new HtmlCrawler($crawler, new UrlBuilder('', $base_url));
+        foreach($page_crawler as $page_crawl_url => $page_crawl) {
+          $linked[$page_crawl_url] = NULL;
+        }
       }
       $p->advance();
     }
 
     $p->finish();
 
+    // Verify all linked URLs.
+    foreach($linked as $resource_url => $status) {
+      $crawler = $client->request('HEAD', $resource_url);
+      $linked[$resource_url] = $client->getResponse()->getStatus();
+    }
+
+    error_log(print_r($linked, TRUE));
+
     foreach ($resources as $item) {
       $output->writeln($item);
     }
+    $output->writeln('');
+    $output->writeln('<info>Done.</info>');
   }
 
   public function setContainer(Container $c) {

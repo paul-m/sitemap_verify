@@ -4,6 +4,7 @@ namespace Mile23\Sitemap;
 
 use Goutte\Client;
 use Pimple\Container;
+use Symfony\Component\CssSelector\CssSelector;
 use Mile23\UrlBuilder;
 
 class SitemapCrawler extends \ArrayIterator {
@@ -11,6 +12,8 @@ class SitemapCrawler extends \ArrayIterator {
   public function __construct(UrlBuilder $u) {
     $pages = array();
 
+    // Disable `HTML` extension of CssSelector.
+    CssSelector::disableHtmlExtension();
     $client = new Client();
     $crawler = $client->request('GET', (string) $u);
     $sitemap_crawler = $crawler->filter('urlset > url > loc');
