@@ -50,6 +50,7 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
     // URLs to check.
     // Linked array has the URL as key and NULL as the value, to be filled in
     // later with the status code of a HEAD request.
+    // $linked is keyed by the URL so that we don't have duplicates.
     $linked = array();
     foreach ($sitemap as $page_url) {
 //      \sleep(2);
@@ -70,7 +71,7 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
 
     $linked_urls = [];
     $output->writeln('');
-    $output->writeln('Checking outbound links...');
+    $output->writeln('Checking links...');
     $p = new ProgressBar($output, count($linked));
     $p->start();
     // Verify all linked URLs.
