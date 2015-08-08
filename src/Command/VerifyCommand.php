@@ -23,9 +23,9 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
     $this
       ->setName('sitemap:verify')
       ->setDescription('Verify a sitemap for a file.')
-      ->addArgument(
-        'baseurl', InputArgument::REQUIRED, 'Base URL of the site. No trailing slash.'
-    );
+      ->addArgument('baseurl', InputArgument::REQUIRED, 'Base URL of the site. No trailing slash.')
+      ->addOption('timeout', 't', InputOption::VALUE_REQUIRED, 'Timeout for each page request, in seconds.', 5)
+      ->addOption('spider', 's', InputOption::VALUE_NONE, 'If set, will spider out to check links on every page.');
   }
 
   protected function execute(InputInterface $input, OutputInterface $output) {
@@ -45,7 +45,7 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
     $p = new ProgressBar($output, count($sitemap));
     $p->start();
     $client = new Client();
-    $client->getClient()->setDefaultOption('config/curl/' . CURLOPT_TIMEOUT, 5);
+    $client->getClient()->setDefaultOption('config/curl/' . CURLOPT_TIMEOUT, $input->getOption('timeout'));
     // Pull in all URLs from the sitemap file(s), and compile a list of linked
     // URLs to check.
     // Linked array has the URL as key and NULL as the value, to be filled in
@@ -69,35 +69,43 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
     }
     $p->finish();
 
-    $linked_urls = [];
-    $output->writeln('');
-    $output->writeln('Checking links...');
-    $p = new ProgressBar($output, count($linked));
-    $p->start();
-    // Verify all linked URLs.
-    foreach($linked as $resource_url => $foo) {
-      try {
-        $crawler = $client->request('HEAD', $resource_url);
-        $status = $client->getResponse()->getStatus();
-        if ($status < 400) {
-          $linked_urls[$resource_url] = $client->getResponse()->getStatus();
+    if ($input->getOption('spider')) {
+      $linked_urls = [];
+      $output->writeln('');
+      $output->writeln('Spidering links...');
+      $p = new ProgressBar($output, count($linked));
+      $p->start();
+      // Verify all linked URLs.
+      foreach($linked as $resource_url => $foo) {
+        try {
+          $crawler = $client->request('HEAD', $resource_url);
+          $status = $client->getResponse()->getStatus();
+          if ($status < 400) {
+            $linked_urls[$resource_url] = $client->getResponse()->getStatus();
+          }
+          else {
+            $bad_urls[] = $resource_url;
+          }
         }
-        else {
+        // @todo: change this to a more specific exception for bad DNS.
+        catch (\Exception $e) {
           $bad_urls[] = $resource_url;
         }
+        $p->advance();
       }
-      // @todo: change this to a more specific exception for bad DNS.
-      catch (\Exception $e) {
-        $bad_urls[] = $resource_url;
-      }
-      $p->advance();
+      $p->finish();
     }
-    $p->finish();
 
 //    error_log(print_r($linked_urls, TRUE));
 
-    foreach ($bad_urls as $item) {
-      $output->writeln($item);
+    $output->writeln('');
+    if (empty($bad_urls)) {
+      $output->writeln('No errors for any page in ' . $url);
+    }
+    else {
+      foreach ($bad_urls as $item) {
+        $output->writeln($item);
+      }
     }
     $output->writeln('');
     $output->writeln('<info>Done.</info>');
