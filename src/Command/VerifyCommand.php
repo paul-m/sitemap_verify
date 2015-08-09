@@ -45,7 +45,8 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
     $p = new ProgressBar($output, count($sitemap));
     $p->start();
     $client = new Client();
-    $client->getClient()->setDefaultOption('config/curl/' . CURLOPT_TIMEOUT, $input->getOption('timeout'));
+    $client->getClient()
+      ->setDefaultOption('config/curl/' . CURLOPT_TIMEOUT, $input->getOption('timeout'));
     // Pull in all URLs from the sitemap file(s), and compile a list of linked
     // URLs to check.
     // Linked array has the URL as key and NULL as the value, to be filled in
@@ -60,9 +61,11 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
         $bad_urls[] = $page_url;
       }
       else {
-        $page_crawler = new HtmlCrawler($crawler, new UrlBuilder('', $base_url));
-        foreach($page_crawler as $page_crawl_url => $page_crawl) {
-          $linked[$page_crawl_url] = NULL;
+        if ($input->getOption('spider')) {
+          $page_crawler = new HtmlCrawler($crawler, new UrlBuilder('', $base_url));
+          foreach($page_crawler as $page_crawl_url => $page_crawl) {
+            $linked[$page_crawl_url] = NULL;
+          }
         }
       }
       $p->advance();
