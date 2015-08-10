@@ -24,21 +24,21 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
       ->setName('sitemap:verify')
       ->setDescription('Verify a sitemap for a file.')
       ->addArgument('baseurl', InputArgument::REQUIRED, 'Base URL of the site. No trailing slash.')
-      ->addOption('timeout', 't', InputOption::VALUE_REQUIRED, 'Timeout for each page request, in seconds.', 5)
+      ->addOption('timeout', 't', InputOption::VALUE_REQUIRED, 'Timeout for each page request, in seconds.', 10)
       ->addOption('spider', 's', InputOption::VALUE_NONE, 'If set, will spider out to check links on every page.');
   }
 
   protected function execute(InputInterface $input, OutputInterface $output) {
+    // @todo: Determine better exit code.
+    $exit_code = 1;
+
     $base_url = $input->getArgument('baseurl');
     $c = $this->container;
-    $c['command.output'] = $output;
-    $c['command.verify.baseurl'] = $base_url;
-    $c['command.alllinks.baseurl'] = $base_url;
 
-    $url = new UrlBuilder('/sitemap.xml', $base_url);
+    $sitemap_url = new UrlBuilder('/sitemap.xml', $base_url);
 
-    $output->writeln('Crawling: ' . $url);
-    $sitemap = new SitemapCrawler($url);
+    $output->writeln('Crawling: ' . $sitemap_url);
+    $sitemap = new SitemapCrawler($sitemap_url);
 
     $bad_urls = [];
 
@@ -90,7 +90,7 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
             $bad_urls[] = $resource_url;
           }
         }
-        // @todo: change this to a more specific exception for bad DNS.
+        // @todo: change this to a more specific exception from Guzzle.
         catch (\Exception $e) {
           $bad_urls[] = $resource_url;
         }
@@ -99,11 +99,10 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
       $p->finish();
     }
 
-//    error_log(print_r($linked_urls, TRUE));
-
     $output->writeln('');
     if (empty($bad_urls)) {
-      $output->writeln('No errors for any page in ' . $url);
+      $output->writeln('No errors for any page in ' . $sitemap_url);
+      $exit_code = 0;
     }
     else {
       foreach ($bad_urls as $item) {
@@ -112,6 +111,8 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
     }
     $output->writeln('');
     $output->writeln('<info>Done.</info>');
+
+    return $exit_code;
   }
 
   public function setContainer(Container $c) {

@@ -7,8 +7,6 @@
 
 namespace Mile23\Sitemap;
 
-use Goutte\Client;
-use Pimple\Container;
 use Mile23\UrlBuilder;
 use Symfony\Component\DomCrawler\Crawler;
 

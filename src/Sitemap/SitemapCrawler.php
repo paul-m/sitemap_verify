@@ -3,7 +3,6 @@
 namespace Mile23\Sitemap;
 
 use Goutte\Client;
-use Pimple\Container;
 use Symfony\Component\CssSelector\CssSelector;
 use Mile23\UrlBuilder;
 
