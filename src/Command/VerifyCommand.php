@@ -3,11 +3,11 @@
 namespace Mile23\Command;
 
 use Goutte\Client;
-use Mile23\ContainerAwareInterface;
 use Mile23\UrlBuilder;
 use Mile23\Sitemap\SitemapCrawler;
 use Mile23\Sitemap\HtmlCrawler;
 use Pimple\Container;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -15,9 +15,18 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\ProgressBar;
 
-class VerifyCommand extends Command implements ContainerAwareInterface {
+class VerifyCommand extends Command {
 
-  protected $container;
+  protected $logger;
+
+  public static function create(Container $c) {
+    return new static($c['logger'], NULL);
+  }
+
+  public function __construct(LoggerInterface $logger, $name = null) {
+    parent::__construct($name);
+    $this->logger = $logger;
+  }
 
   protected function configure() {
     $this
@@ -38,7 +47,7 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
     $sitemap_url = new UrlBuilder('/sitemap.xml', $base_url);
 
     $output->writeln('Crawling: ' . $sitemap_url);
-    $sitemap = new SitemapCrawler($sitemap_url);
+    $sitemap = new SitemapCrawler($sitemap_url, $this->logger);
 
     $bad_urls = [];
 
@@ -113,10 +122,6 @@ class VerifyCommand extends Command implements ContainerAwareInterface {
     $output->writeln('<info>Done.</info>');
 
     return $exit_code;
-  }
-
-  public function setContainer(Container $c) {
-    $this->container = $c;
   }
 
 }
