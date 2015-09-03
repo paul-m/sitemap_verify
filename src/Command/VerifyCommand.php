@@ -17,6 +17,14 @@ use Symfony\Component\Console\Helper\ProgressBar;
 
 class VerifyCommand extends Command {
 
+  /**
+   * Our logger.
+   *
+   * @var \Psr\Log\LoggerInterface
+   *
+   * @todo: Determine a t-logger strategy so we can have arbitrary loggers and
+   *   still deliver a report back to the CLI.
+   */
   protected $logger;
 
   public static function create(Container $c) {
@@ -39,10 +47,9 @@ class VerifyCommand extends Command {
 
   protected function execute(InputInterface $input, OutputInterface $output) {
     // @todo: Determine better exit code.
-    $exit_code = 1;
+    $exit_code = 99;
 
     $base_url = $input->getArgument('baseurl');
-    $c = $this->container;
 
     $sitemap_url = new UrlBuilder('/sitemap.xml', $base_url);
 
