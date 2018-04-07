@@ -56,31 +56,38 @@ class VerifyCommand extends Command {
     $output->writeln('Crawling: ' . $sitemap_url);
     $sitemap = new SitemapCrawler($sitemap_url, $this->logger);
 
-    $bad_urls = [];
+    $bad_sitemap_urls = [];
+    $bad_resources = [];
 
     $p = new ProgressBar($output, count($sitemap));
     $p->start();
     $client = new Client();
     $client->getClient()
       ->setDefaultOption('config/curl/' . CURLOPT_TIMEOUT, $input->getOption('timeout'));
+
     // Pull in all URLs from the sitemap file(s), and compile a list of linked
     // URLs to check.
-    // Linked array has the URL as key and NULL as the value, to be filled in
-    // later with the status code of a HEAD request.
-    // $linked is keyed by the URL so that we don't have duplicates.
-    $linked = array();
+    //
+    // $linked has the remote resource to check as the key, and then a list of
+    // sitemap page URLs which link to it. This will only be used if the
+    // --spider option is set.
+    $resources = [];
+
     foreach ($sitemap as $page_url) {
 //      \sleep(2);
       $crawler = $client->request('GET', $page_url);
       $status = $client->getResponse()->getStatus();
       if ($status != 200) {
-        $bad_urls[] = $page_url;
+        $bad_sitemap_urls[] = $page_url;
       }
       else {
         if ($input->getOption('spider')) {
           $page_crawler = new HtmlCrawler($crawler, new UrlBuilder('', $base_url));
           foreach($page_crawler as $page_crawl_url => $page_crawl) {
-            $linked[$page_crawl_url] = NULL;
+            if (empty($resources[$page_crawl_url])) {
+              $resources[$page_crawl_url] = [];
+            }
+            $resources[$page_crawl_url][] = $page_url;
           }
         }
       }
@@ -92,23 +99,19 @@ class VerifyCommand extends Command {
       $linked_urls = [];
       $output->writeln('');
       $output->writeln('Spidering links...');
-      $p = new ProgressBar($output, count($linked));
+      $p = new ProgressBar($output, count($resources));
       $p->start();
       // Verify all linked URLs.
-      foreach($linked as $resource_url => $foo) {
+      foreach($resources as $resource_url => $pages_where_it_appears) {
         try {
           $crawler = $client->request('HEAD', $resource_url);
-          $status = $client->getResponse()->getStatus();
-          if ($status < 400) {
-            $linked_urls[$resource_url] = $client->getResponse()->getStatus();
-          }
-          else {
-            $bad_urls[] = $resource_url;
+          if ($client->getResponse()->getStatus() > 399) {
+            $bad_resources[$resource_url] = $pages_where_it_appears;
           }
         }
         // @todo: change this to a more specific exception from Guzzle.
         catch (\Exception $e) {
-          $bad_urls[] = $resource_url;
+          $bad_resources[$resource_url] = $pages_where_it_appears;
         }
         $p->advance();
       }
@@ -116,13 +119,26 @@ class VerifyCommand extends Command {
     }
 
     $output->writeln('');
-    if (empty($bad_urls)) {
+    if (empty($bad_sitemap_urls) && empty($bad_resources)) {
       $output->writeln('No errors for any page in ' . $sitemap_url);
       $exit_code = 0;
     }
     else {
-      foreach ($bad_urls as $item) {
-        $output->writeln($item);
+      if (!empty($bad_sitemap_urls)) {
+        $output->writeln('<info>The following URLs present in sitemap.xml were not reached successfully:</info>');
+        foreach($bad_sitemap_urls as $item) {
+          $output->writeln($item);
+        }
+      }
+
+      if (!empty($bad_resources)) {
+        $output->writeln('<info>The following spidered resources were not reached successfully:</info>');
+        foreach($bad_resources as $resource_url => $places) {
+          $output->writeln($resource_url . ' linked from:');
+          foreach($places as $place) {
+            $output->writeln('  ' . $place);
+          }
+        }
       }
     }
     $output->writeln('');
