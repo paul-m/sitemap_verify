@@ -18,7 +18,7 @@ class SitemapCrawler extends \ArrayIterator {
     $crawler = $client->request('GET', (string) $u);
     $status = $client->getResponse()->getStatus();
     if ($status > 399) {
-      $logger->emergency('Status ' . $status . ' getting ' . (string) $u);
+      throw new \RuntimeException('STATUS: ' . $status . ' getting ' . (string) $u);
     }
 
     $sitemap_crawler = $crawler->filter('urlset > url > loc');
