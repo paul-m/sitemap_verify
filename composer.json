@@ -18,7 +18,7 @@
         "fabpot/goutte": "*",
         "guzzlehttp/guzzle": "^5.3",
         "symfony/console": "*",
-        "symfony/css-selector": "*",
+        "symfony/css-selector": "~2.8",
         "pimple/pimple": "*",
         "psr/log": "*"
     }
