@@ -15,11 +15,16 @@
     },
     "minimum-stability": "stable",
     "require": {
-        "fabpot/goutte": "*",
-        "guzzlehttp/guzzle": "^5.3",
-        "symfony/console": "*",
-        "symfony/css-selector": "~2.8",
+        "php": "^7.2",
+        "guzzlehttp/guzzle": "*",
         "pimple/pimple": "*",
-        "psr/log": "*"
+        "psr/log": "*",
+        "symfony/browser-kit": "^5",
+        "symfony/console": "*",
+        "symfony/css-selector": "*",
+        "symfony/http-client": "^5"
+    },
+    "config": {
+        "sort-packages": true
     }
 }

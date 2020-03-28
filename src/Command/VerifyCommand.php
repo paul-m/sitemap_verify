@@ -2,18 +2,19 @@
 
 namespace Mile23\Command;
 
-use Goutte\Client;
 use Mile23\UrlBuilder;
 use Mile23\Sitemap\SitemapCrawler;
 use Mile23\Sitemap\HtmlCrawler;
 use Pimple\Container;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\BrowserKit\HttpBrowser;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\HttpClient\HttpClient;
 
 class VerifyCommand extends Command {
 
@@ -41,7 +42,7 @@ class VerifyCommand extends Command {
       ->setName('sitemap:verify')
       ->setDescription('Verify a sitemap for a file.')
       ->addArgument('baseurl', InputArgument::REQUIRED, 'Base URL of the site. No trailing slash.')
-      ->addOption('timeout', 't', InputOption::VALUE_REQUIRED, 'Timeout for each page request, in seconds.', 10)
+      ->addOption('timeout', 't', InputOption::VALUE_REQUIRED, 'Timeout for each page request, in seconds.', 7)
       ->addOption('spider', 's', InputOption::VALUE_NONE, 'If set, will spider out to check links on every page.');
   }
 
@@ -61,9 +62,11 @@ class VerifyCommand extends Command {
 
     $p = new ProgressBar($output, count($sitemap));
     $p->start();
-    $client = new Client();
-    $client->getClient()
-      ->setDefaultOption('config/curl/' . CURLOPT_TIMEOUT, $input->getOption('timeout'));
+
+    $browser = new HttpBrowser(HttpClient::create([
+      'timeout' => $input->getOption('timeout'),
+      'max_redirects' => 3,
+    ]));
 
     // Pull in all URLs from the sitemap file(s), and compile a list of linked
     // URLs to check.
@@ -75,15 +78,16 @@ class VerifyCommand extends Command {
 
     foreach ($sitemap as $page_url) {
 //      \sleep(2);
-      $crawler = $client->request('GET', $page_url);
-      $status = $client->getResponse()->getStatus();
+      $browser->request('GET', $page_url);
+      $status = $browser->getInternalResponse()->getStatusCode();
+
       if ($status != 200) {
         $bad_sitemap_urls[] = $page_url;
       }
       else {
         if ($input->getOption('spider')) {
-          $page_crawler = new HtmlCrawler($crawler, new UrlBuilder('', $base_url));
-          foreach($page_crawler as $page_crawl_url => $page_crawl) {
+          $page_crawler = new HtmlCrawler($browser->getCrawler(), new UrlBuilder('', $base_url));
+          foreach ($page_crawler as $page_crawl_url => $page_crawl) {
             if (empty($resources[$page_crawl_url])) {
               $resources[$page_crawl_url] = [];
             }
@@ -102,10 +106,10 @@ class VerifyCommand extends Command {
       $p = new ProgressBar($output, count($resources));
       $p->start();
       // Verify all linked URLs.
-      foreach($resources as $resource_url => $pages_where_it_appears) {
+      foreach ($resources as $resource_url => $pages_where_it_appears) {
         try {
-          $crawler = $client->request('HEAD', $resource_url);
-          if ($client->getResponse()->getStatus() > 399) {
+          $crawler = $browser->request('HEAD', $resource_url);
+          if ($browser->getInternalResponse()->getStatusCode() > 399) {
             $bad_resources[$resource_url] = $pages_where_it_appears;
           }
         }
@@ -126,16 +130,16 @@ class VerifyCommand extends Command {
     else {
       if (!empty($bad_sitemap_urls)) {
         $output->writeln('<info>The following URLs present in sitemap.xml were not reached successfully:</info>');
-        foreach($bad_sitemap_urls as $item) {
+        foreach ($bad_sitemap_urls as $item) {
           $output->writeln($item);
         }
       }
 
       if (!empty($bad_resources)) {
         $output->writeln('<info>The following spidered resources were not reached successfully:</info>');
-        foreach($bad_resources as $resource_url => $places) {
+        foreach ($bad_resources as $resource_url => $places) {
           $output->writeln($resource_url . ' linked from:');
-          foreach($places as $place) {
+          foreach ($places as $place) {
             $output->writeln('  ' . $place);
           }
         }
