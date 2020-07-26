@@ -12,7 +12,7 @@ use Psr\Log\AbstractLogger;
 class SitemapLogger extends AbstractLogger {
 
   /**
-   * The actual log data. We store a cronological array.
+   * The actual log data. We store a chronological array.
    *
    * @var array
    */

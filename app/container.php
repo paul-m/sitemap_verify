@@ -2,7 +2,6 @@
 
 use Pimple\Container;
 use Mile23\SitemapLogger;
-use Mile23\Command\AllLinksCommand;
 use Mile23\Command\VerifyCommand;
 use Symfony\Component\Console\Application;
 
@@ -12,17 +11,12 @@ $c['logger'] = $c->factory(function () {
   return new SitemapLogger();
 });
 
-$c['command.alllinks'] = $c->factory(function($c) {
-  return AllLinksCommand::create($c);
-});
-
 $c['command.verify'] = $c->factory(function($c) {
   return VerifyCommand::create($c);
 });
 
 $c['commands'] = $c->factory(function($c) {
   return array(
-    $c['command.alllinks'],
     $c['command.verify'],
   );
 });
