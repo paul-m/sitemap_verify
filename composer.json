@@ -16,13 +16,12 @@
     "minimum-stability": "stable",
     "require": {
         "php": "^7.2",
-        "guzzlehttp/guzzle": "*",
+        "guzzlehttp/guzzle": "^6.5",
         "pimple/pimple": "*",
         "psr/log": "*",
-        "symfony/browser-kit": "^5",
         "symfony/console": "*",
-        "symfony/css-selector": "*",
-        "symfony/http-client": "^5"
+        "symfony/css-selector": "^5.0",
+        "symfony/dom-crawler": "^5.0"
     },
     "config": {
         "sort-packages": true

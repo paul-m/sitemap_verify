@@ -47,6 +47,18 @@ class VerifyCommand extends Command {
   }
 
   protected function execute(InputInterface $input, OutputInterface $output) {
+
+    $asset = new \Mile23\Asset\Asset('http://mile23.com/does_not_exist', 'http://foo.bar');
+
+    $visitor = new \Mile23\Asset\AssetVisitor(new \Mile23\Client\Client());
+    $visitor->addAsset($asset);
+
+    $output->writeln($visitor->visitAssets()->getBadAssets());
+
+    $output->writeln('done?');
+
+    return 0;
+
     // @todo: Determine better exit code.
     $exit_code = 99;
 
