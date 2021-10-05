@@ -1,7 +1,7 @@
 {
     "name": "mile23/sitemap_verify",
     "description": "Verify that a sitemap.xml file is correct.",
-    "license": "GPL-2.0-or-later",
+    "license": "MIT",
     "authors": [
         {
             "name": "Paul Mitchum",
